@@ -44,4 +44,8 @@ CUDA_VISIBLE_DEVICES=${GPU} bash generator_qm9_hparam1.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash smiles_generator_moses.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash smiles_generator_zinc.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash smiles_generator_qm9.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash translator_logp04.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash translator_logp06.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash translator_drd2.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash translator_qed.sh
 ```
