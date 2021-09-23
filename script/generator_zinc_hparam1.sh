@@ -5,4 +5,4 @@ python train_generator.py \
 --randomize \
 --disable_valencemask \
 --dataset_name zinc \
---tag zinc_hparam0
+--tag zinc_hparam1
