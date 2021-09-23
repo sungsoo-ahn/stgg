@@ -6,7 +6,7 @@
 #SBATCH --output=/nfs/projects/mbzuai/peterahn/workspace/molgen/resource/log/job_%j.log
 #SBATCH -N 1
 #SBATCH -G 1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=6
 #SBATCH --exclude=p1-r05-b.g42cloud.net
 
 srun \
