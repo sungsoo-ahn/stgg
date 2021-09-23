@@ -312,11 +312,7 @@ class Data:
             if token in ATOM_TOKENS:
                 molgraph.add_node(node, token=token)
             elif token in BOND_TOKENS:
-                try:
-                    node0, node1 = mollinegraph.neighbors(node)
-                except:
-                    print(self.tokens)
-                    assert False
+                node0, node1 = mollinegraph.neighbors(node)
 
                 molgraph.add_edge(node0, node1, token=token)
 
@@ -406,6 +402,7 @@ class Data:
         for token in tokens:
             data.update(get_id(token))
             if data.error is not None:
+                print("".join(data.tokens), token)
                 print(data.error)
 
         data.update(get_id(EOS_TOKEN))

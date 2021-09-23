@@ -63,18 +63,17 @@ class BaseDecoder(nn.Module):
         super(BaseDecoder, self).__init__()
         self.nhead = nhead
 
+        #
         self.token_embedding_layer = TokenEmbedding(len(TARGET_TOKENS), emb_size)
-        self.branch_embedding_layer = TokenEmbedding(MAX_TARGET_LEN, emb_size)
-
+        self.count_embedding_layer = TokenEmbedding(MAX_TARGET_LEN, emb_size)
+        
         #
         self.input_dropout = nn.Dropout(dropout)
 
         #
-        self.distance_embedding_layer = nn.Embedding(MAX_TARGET_LEN + 1, nhead)
-
+        self.linear_loc_embedding_layer = nn.Embedding(MAX_TARGET_LEN + 1, nhead)
         self.up_loc_embedding_layer = nn.Embedding(MAX_TARGET_LEN + 1, nhead)
         self.down_loc_embedding_layer = nn.Embedding(MAX_TARGET_LEN + 1, nhead)
-        self.right_loc_embedding_layer = nn.Embedding(MAX_TARGET_LEN + 1, nhead)
 
         #
         encoder_layer = nn.TransformerDecoderLayer(emb_size, nhead, dim_feedforward, dropout, "gelu")
@@ -88,28 +87,27 @@ class BaseDecoder(nn.Module):
     def forward(self, tgt, memory, memory_key_padding_mask):
         (
             sequences,
-            branch_sequences,
-            distance_squares,
+            count_sequences, 
+            graph_mask_sequences,
+            valence_mask_sequences,
+            linear_loc_squares,
             up_loc_squares,
             down_loc_squares,
-            right_loc_squares,
-            pred_masks,
         ) = tgt
         batch_size = sequences.size(0)
         sequence_len = sequences.size(1)
 
         #
         out = self.token_embedding_layer(sequences)
-        out += self.branch_embedding_layer(branch_sequences)
+        out += self.count_embedding_layer(count_sequences)
 
         out = self.input_dropout(out)
 
         #
-        mask = self.distance_embedding_layer(distance_squares)
+        mask = self.linear_loc_embedding_layer(linear_loc_squares)
         mask += self.up_loc_embedding_layer(up_loc_squares)
         mask += self.down_loc_embedding_layer(down_loc_squares)
-        mask += self.right_loc_embedding_layer(right_loc_squares)
-
+        
         mask = mask.permute(0, 3, 1, 2)
 
         #
@@ -135,7 +133,9 @@ class BaseDecoder(nn.Module):
         logits0 = self.generator(out)
         logits1 = self.ring_generator(out, sequences)
         logits = torch.cat([logits0, logits1], dim=2)
-        logits = logits.masked_fill(pred_masks, float("-inf"))
+
+        logits = logits.masked_fill(graph_mask_sequences, float("-inf"))        
+        logits = logits.masked_fill(valence_mask_sequences, float("-inf"))
 
         return logits
 
@@ -157,35 +157,23 @@ class BaseTranslator(nn.Module):
 
         data_list = [TargetData() for _ in range(num_samples)]
         data_idx_list = list(range(num_samples))
-        ended_data_list = []
-        parallel = Parallel(n_jobs=8)
-
-        def _update_data(inp):
-            data, id = inp
-            data.update(id)
-            return data
-
-        for _ in range(max_len):
-            if len(data_list) == 0:
+        for _ in tqdm(range(max_len)):
+            if len(data_idx_list) == 0:
                 break
-
-            tgt = TargetData.collate([data.featurize() for data in data_list])
+                
+            tgt = TargetData.collate([data_list[idx].featurize() for idx in data_idx_list])
             tgt = [tsr.to(device) for tsr in tgt]
             memory_ = memory[:, torch.tensor(data_idx_list)]
             memory_key_padding_mask_ = memory_key_padding_mask[torch.tensor(data_idx_list)]
             logits = self.decoder(tgt, memory_, memory_key_padding_mask_)
             preds = Categorical(logits=logits[:, -1]).sample()
-            data_list = parallel(delayed(_update_data)(pair) for pair in zip(data_list, preds.tolist()))
+            
+            for idx, id_ in zip(data_idx_list, preds.tolist()):
+                data_list[idx].update(id_)
+            
+            data_idx_list = [idx for idx, data in enumerate(data_list) if not data.ended]
 
-            ended_data_list += [data for data in data_list if data.ended]
-
-            if len(ended_data_list) < len(data_list):
-                data_idx_list, data_list = map(
-                    list, zip(*[(idx, data) for idx, data in zip(data_idx_list, data_list) if not data.ended])
-                )
-            else:
-                data_idx_list, data_list = [], []
-
-        data_list = data_list + ended_data_list
+        for idx in data_idx_list:
+            data_list[idx].error = "incomplete"
 
         return data_list

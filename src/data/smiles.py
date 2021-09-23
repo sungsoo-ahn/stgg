@@ -71,7 +71,7 @@ VALENCES = {
     "[PH2]": 3,
     "[PH+]": 3,
     "[S]": 6,
-    "[SH]": 3,
+    "[SH]": 5,
     "[SH+]": 2,
     "[S-]": 1,
     "[S+]": 3,
@@ -106,6 +106,7 @@ def get_bond_order(bond_token):
 def smiles2molgraph(smiles):
     mol = Chem.MolFromSmiles(smiles)
     Chem.Kekulize(mol)
+    Chem.RemoveStereochemistry(mol)
 
     G = nx.Graph()
     for atom in mol.GetAtoms():
@@ -130,6 +131,9 @@ def molgraph2smiles(G):
         a = Chem.Atom(atomic_num)
         a.SetFormalCharge(formal_charge)
         a.SetNumExplicitHs(num_explicit_Hs)
+        if num_explicit_Hs > 0:
+            a.SetNoImplicit(True)
+
         idx = mol.AddAtom(a)
         node_to_idx[node] = idx
 

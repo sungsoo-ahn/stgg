@@ -6,7 +6,6 @@ python train_generator.py \
 --input_dropout 0.0 \
 --randomize \
 --dataset_name moses \
---max_epochs 100 \
 --check_sample_every_n_epoch 5 \
 --num_samples 30000 \
 --eval_moses \

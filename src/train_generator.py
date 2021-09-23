@@ -120,11 +120,11 @@ class BaseGeneratorLightningModule(pl.LightningModule):
         #
         valid_smiles_list = [smiles for smiles in smiles_list if smiles is not None]
         unique_smiles_set = set(valid_smiles_list)
-        novel_smiles_set = unique_smiles_set - self.train_smiles_set
+        novel_smiles_list = [smiles for smiles in valid_smiles_list if smiles not in self.train_smiles_set]
         statistics = dict()
         statistics["sample/valid"] = float(len(valid_smiles_list)) / num_samples
         statistics["sample/unique"] = float(len(unique_smiles_set)) / len(valid_smiles_list)
-        statistics["sample/novel"] = float(len(novel_smiles_set)) / len(valid_smiles_list)
+        statistics["sample/novel"] = float(len(novel_smiles_list)) / len(valid_smiles_list)
 
         #
         for key, val in statistics.items():

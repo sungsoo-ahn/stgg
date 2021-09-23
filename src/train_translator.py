@@ -19,6 +19,7 @@ from data.target_data import Data as TargetData
 from util import compute_sequence_cross_entropy, compute_sequence_accuracy, canonicalize
 
 from tqdm import tqdm
+from moses.utils import disable_rdkit_log, enable_rdkit_log
 
 class BaseTranslatorLightningModule(pl.LightningModule):
     def __init__(self, hparams):
@@ -34,8 +35,9 @@ class BaseTranslatorLightningModule(pl.LightningModule):
             self.hparams.dataset_name
         )
         self.train_dataset = dataset_cls("train")
-        self.val_dataset = dataset_cls("valid")
-        self.test_dataset = dataset_cls("test")
+        self.train_dataset.src_smiles_list = self.train_dataset.src_smiles_list
+        self.train_dataset.tgt_smiles_list = self.train_dataset.tgt_smiles_list
+        self.val_dataset = dataset_cls("test")
 
         def train_collate(data_list):
             src, tgt = zip(*data_list)
@@ -76,15 +78,6 @@ class BaseTranslatorLightningModule(pl.LightningModule):
             num_workers=self.hparams.num_workers,
         )
 
-    def test_dataloader(self):
-        return DataLoader(
-            self.test_dataset,
-            batch_size=self.hparams.eval_batch_size,
-            shuffle=False,
-            collate_fn=self.eval_collate,
-            num_workers=self.hparams.num_workers,
-        )
-
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr)
         return [optimizer]
@@ -98,71 +91,38 @@ class BaseTranslatorLightningModule(pl.LightningModule):
 
         # decoding
         logits = self.model(src, tgt)
-        recon_loss = compute_sequence_cross_entropy(logits, tgt[0])
-        loss += recon_loss
-
-        element_acc, sequence_acc = compute_sequence_accuracy(logits, tgt[0])
+        loss = compute_sequence_cross_entropy(logits, tgt[0])
+        acc = compute_sequence_accuracy(logits, tgt[0])[0]
 
         statistics["loss/total"] = loss
-        statistics["acc/element"] = element_acc
-        statistics["acc/sequence"] = sequence_acc
+        statistics["acc/total"] = acc
         for key, val in statistics.items():
             self.log(f"train/{key}", val, on_step=True, logger=True)
 
         return loss
 
     def validation_step(self, batched_data, batch_idx):
-        statistics = dict()
         src, src_smiles_list = batched_data
-        max_len = self.hparams.max_len if self.sanity_checked else 10
-        with torch.no_grad():
-            tgt_data_list = self.model.decode(src, max_len=max_len, device=self.device)
-
-        smiles_list = []
-        for tgt_data, src_smiles in zip(tgt_data_list, src_smiles_list):
-            if tgt_data.error is None:
-                try:
-                    maybe_smiles = tgt_data.to_smiles()
-                    smiles, error = canonicalize(maybe_smiles)
-                    smiles_list.append(smiles)
-                except Exception as e:
-                    maybe_smiles = ""
-                    error = e
-            else:
-                maybe_smiles = ""
-                error = tgt_data.error
-
-            if error is not None:
-                self.logger.experiment["invalid_smiles"].log(
-                    f"{self.current_epoch}, {src_smiles}, {maybe_smiles}, {error}"
-                )
-
-        batch_size = src[0].size(0)
-        statistics["validation/valid"] = float(len(smiles_list)) / batch_size
-        statistics["validation/unique"] = float(len(set(smiles_list))) / batch_size
-
-        for key, val in statistics.items():
-            self.log(key, val, on_step=False, on_epoch=True, logger=True)
-
-    def test_step(self, batched_data, batch_idx):
-        src, src_smiles_list = batched_data
-        src_smiles2tgt_smiles_list = defaultdict(list)
-        for _ in tqdm(range(self.hparams.num_repeats)):
+        max_len = self.hparams.max_len if not self.trainer.sanity_checking else 10
+        
+        tgt_smiles_list_list = []
+        self.eval()
+        for _ in range(self.hparams.num_repeats):
             with torch.no_grad():
-                tgt_data_list = self.model.decode(src, max_len=self.hparams.max_len, device=self.device)
+                tgt_data_list = self.model.decode(src, max_len=max_len, device=self.device)
 
-            for src_smiles, tgt_data in zip(src_smiles_list, tgt_data_list):
-                try:
-                    maybe_smiles = tgt_data.to_smiles()
-                    src_smiles2tgt_smiles_list[src_smiles].append(maybe_smiles)
-                except:
-                    src_smiles2tgt_smiles_list[src_smiles].append("")
+            tgt_smiles_list = [data.to_smiles() for data in tgt_data_list]
+            disable_rdkit_log()
+            tgt_smiles_list = [str(canonicalize(smiles)) for smiles in tgt_smiles_list]
+            enable_rdkit_log()
+            tgt_smiles_list_list.append(tgt_smiles_list)
 
-                
-        dict_path = os.path.join(self.hparams.checkpoint_dir, "test_pairs.txt")
-        for src_smiles in src_smiles_list:
-            with Path(dict_path).open("a") as fp:
-                fp.write(" ".join([src_smiles] + src_smiles2tgt_smiles_list[src_smiles]) + "\n")
+        tgt_smiles_list_list = list(map(list, zip(*tgt_smiles_list_list)))
+        if not self.trainer.sanity_checking:
+            for src_smiles, tgt_smiles_list in zip(src_smiles_list, tgt_smiles_list_list):
+                self.logger.experiment[f"sample/{self.current_epoch:03d}"].log(
+                    ", ".join([src_smiles] + tgt_smiles_list)
+                    )
 
     @staticmethod
     def add_args(parser):
@@ -177,7 +137,7 @@ class BaseTranslatorLightningModule(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=1e-4)
         parser.add_argument("--batch_size", type=int, default=64)
         parser.add_argument("--eval_batch_size", type=int, default=256)
-        parser.add_argument("--num_workers", type=int, default=8)
+        parser.add_argument("--num_workers", type=int, default=6)
 
         parser.add_argument("--num_repeats", type=int, default=20)
         parser.add_argument("--max_len", type=int, default=250)
@@ -190,8 +150,9 @@ if __name__ == "__main__":
     BaseTranslatorLightningModule.add_args(parser)
     parser.add_argument("--max_epochs", type=int, default=500)
     parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--gradient_clip_val", type=float, default=0.5)
+    parser.add_argument("--gradient_clip_val", type=float, default=1.0)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
+    parser.add_argument("--check_val_every_n_epoch", type=int, default=50)
     parser.add_argument("--tag", type=str, default="default")
     hparams = parser.parse_args()
 
@@ -214,12 +175,6 @@ if __name__ == "__main__":
         max_epochs=hparams.max_epochs,
         callbacks=callbacks,
         gradient_clip_val=hparams.gradient_clip_val,
+        check_val_every_n_epoch=hparams.check_val_every_n_epoch,
     )
     trainer.fit(model)
-
-    if hparams.max_epochs > 0:
-        model.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-
-    model = model.to(0)
-    model.eval()
-    trainer.test(model)
