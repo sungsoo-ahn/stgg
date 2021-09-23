@@ -157,7 +157,7 @@ class BaseTranslator(nn.Module):
 
         data_list = [TargetData() for _ in range(num_samples)]
         data_idx_list = list(range(num_samples))
-        for _ in tqdm(range(max_len)):
+        for _ in range(max_len):
             if len(data_idx_list) == 0:
                 break
                 

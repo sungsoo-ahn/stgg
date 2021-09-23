@@ -104,10 +104,10 @@ class BaseTranslatorLightningModule(pl.LightningModule):
     def validation_step(self, batched_data, batch_idx):
         src, src_smiles_list = batched_data
         max_len = self.hparams.max_len if not self.trainer.sanity_checking else 10
-        
+        num_repeats = self.hparams.num_repeats if not self.trainer.sanity_checking else 2
         tgt_smiles_list_list = []
         self.eval()
-        for _ in range(self.hparams.num_repeats):
+        for _ in range(num_repeats):
             with torch.no_grad():
                 tgt_data_list = self.model.decode(src, max_len=max_len, device=self.device)
 
