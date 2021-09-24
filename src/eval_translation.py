@@ -91,6 +91,9 @@ if __name__ == "__main__":
                 tgt = Chem.MolToSmiles(mol)
                 score_list.append(1.0)
             except:
+                print(tgt_list)
+                print(tgt)
+                assert False
                 score_list.append(0.0)
             
             enable_rdkit_log()
@@ -103,7 +106,12 @@ if __name__ == "__main__":
     lines = Path(hparams.smiles_list_path).read_text(encoding="utf-8").splitlines()
     lines = [line.split(",")[2:] for line in lines]
 
-    validity = Parallel(n_jobs=8)(delayed(batch_validity_func)(line) for line in lines)
+    #validity = Parallel(n_jobs=8)(delayed(batch_validity_func)(line) for line in lines)
+    validity = []
+    for line in lines:
+        print(line)
+        validity.append(batch_validity_func(line))
+
     validity = np.array(validity, dtype=np.float)
     print(validity.mean())
 

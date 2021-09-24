@@ -126,9 +126,8 @@ class BaseTranslatorLightningModule(pl.LightningModule):
         tgt_smiles_list_list = list(map(list, zip(*tgt_smiles_list_list)))
         if not self.trainer.sanity_checking:
             for src_smiles, tgt_smiles_list in zip(src_smiles_list, tgt_smiles_list_list):
-                self.logger.experiment[f"sample/{self.current_epoch:03d}"].log(
-                    ", ".join([src_smiles] + tgt_smiles_list)
-                    )
+                for tgt_smiles in tgt_smiles_list:
+                    self.logger.experiment[f"sample/{self.current_epoch:03d}"].log(",".join([src_smiles, tgt_smiles]))
 
     @staticmethod
     def add_args(parser):
