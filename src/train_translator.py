@@ -114,7 +114,7 @@ class BaseTranslatorLightningModule(pl.LightningModule):
             for data in tgt_data_list:
                 if data.error is not None:
                     self.logger.experiment[f"sample/error/{self.current_epoch:03d}"].log(
-                        "".join(data.tokens) + data.error
+                        "".join(data.tokens) + " " + data.error
                         )
 
             tgt_smiles_list = [data.to_smiles() for data in tgt_data_list]
@@ -140,7 +140,7 @@ class BaseTranslatorLightningModule(pl.LightningModule):
         parser.add_argument("--dim_feedforward", type=int, default=2048)
         parser.add_argument("--dropout", type=int, default=0.1)
 
-        parser.add_argument("--lr", type=float, default=2e-4)
+        parser.add_argument("--lr", type=float, default=1e-4)
         parser.add_argument("--batch_size", type=int, default=64)
         parser.add_argument("--eval_batch_size", type=int, default=256)
         parser.add_argument("--num_workers", type=int, default=6)
@@ -154,7 +154,7 @@ class BaseTranslatorLightningModule(pl.LightningModule):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     BaseTranslatorLightningModule.add_args(parser)
-    parser.add_argument("--max_epochs", type=int, default=50)
+    parser.add_argument("--max_epochs", type=int, default=100)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--gradient_clip_val", type=float, default=1.0)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
