@@ -111,6 +111,12 @@ class BaseTranslatorLightningModule(pl.LightningModule):
             with torch.no_grad():
                 tgt_data_list = self.model.decode(src, max_len=max_len, device=self.device)
 
+            for data in tgt_data_list:
+                if data.error is not None:
+                    self.logger.experiment[f"sample/error/{self.current_epoch:03d}"].log(
+                        "".join(data.tokens) + data.error
+                        )
+
             tgt_smiles_list = [data.to_smiles() for data in tgt_data_list]
             disable_rdkit_log()
             tgt_smiles_list = [str(canonicalize(smiles)) for smiles in tgt_smiles_list]
@@ -134,7 +140,7 @@ class BaseTranslatorLightningModule(pl.LightningModule):
         parser.add_argument("--dim_feedforward", type=int, default=2048)
         parser.add_argument("--dropout", type=int, default=0.1)
 
-        parser.add_argument("--lr", type=float, default=1e-4)
+        parser.add_argument("--lr", type=float, default=2e-4)
         parser.add_argument("--batch_size", type=int, default=64)
         parser.add_argument("--eval_batch_size", type=int, default=256)
         parser.add_argument("--num_workers", type=int, default=6)
@@ -148,10 +154,11 @@ class BaseTranslatorLightningModule(pl.LightningModule):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     BaseTranslatorLightningModule.add_args(parser)
-    parser.add_argument("--max_epochs", type=int, default=500)
+    parser.add_argument("--max_epochs", type=int, default=50)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--gradient_clip_val", type=float, default=1.0)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
+    parser.add_argument("--resume_from_checkpoint_path", type=str, default=None)
     parser.add_argument("--check_val_every_n_epoch", type=int, default=50)
     parser.add_argument("--tag", type=str, default="default")
     hparams = parser.parse_args()
@@ -176,5 +183,6 @@ if __name__ == "__main__":
         callbacks=callbacks,
         gradient_clip_val=hparams.gradient_clip_val,
         check_val_every_n_epoch=hparams.check_val_every_n_epoch,
+        resume_from_checkpoint=hparams.resume_from_checkpoint_path,
     )
     trainer.fit(model)

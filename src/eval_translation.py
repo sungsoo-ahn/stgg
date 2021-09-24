@@ -7,9 +7,13 @@ from props.properties import penalized_logp, drd2, qed, similarity
 
 from rdkit import RDLogger
 
-# RDLogger.logger().setLevel(RDLogger.CRITICAL)
-RDLogger.DisableLog("rdApp.info")
-from rdkit.rdBase import BlockLogs
+from rdkit import rdBase
+
+def disable_rdkit_log():
+    rdBase.DisableLog('rdApp.*')
+
+def enable_rdkit_log():
+    rdBase.EnableLog('rdApp.*')
 
 from rdkit import Chem
 
@@ -28,15 +32,14 @@ if __name__ == "__main__":
         similarity_thr = 0.6
 
     elif hparams.task == "drd2":
-        score_func = lambda src, tgt: float(drd2(tgt) > 0.5)
+        score_func = lambda src, tgt: float(drd2(tgt) >= 0.5)
         similarity_thr = 0.4
 
     elif hparams.task == "qed":
-        score_func = lambda src, tgt: float(qed(tgt) > 0.9)
+        score_func = lambda src, tgt: float(qed(tgt) >= 0.9)
         similarity_thr = 0.4
 
-    def batch_score_func(line):
-        smiles_list = line.split(" ")
+    def batch_score_func(smiles_list):
         src, tgt_list = smiles_list[0], smiles_list[1:]
         score_list = []
         for tgt in tgt_list:
@@ -45,10 +48,12 @@ if __name__ == "__main__":
             except:
                 score_list.append(None)
 
+        while len(score_list) < 20:
+            score_list.append(None)
+
         return score_list
 
-    def batch_similarity_func(line):
-        smiles_list = line.split(" ")
+    def batch_similarity_func(smiles_list):
         src, tgt_list = smiles_list[0], smiles_list[1:]
         score_list = []
         for tgt in tgt_list:
@@ -57,10 +62,12 @@ if __name__ == "__main__":
             except:
                 score_list.append(None)
 
+        while len(score_list) < 20:
+            score_list.append(None)
+
         return score_list
 
-    def batch_diversity_func(line):
-        smiles_list = line.split(" ")
+    def batch_diversity_func(smiles_list):
         _, tgt_list = smiles_list[0], smiles_list[1:]
         score_list = []
         for smi0, smi1 in combinations(tgt_list, 2):
@@ -69,25 +76,32 @@ if __name__ == "__main__":
             except:
                 score_list.append(None)
 
+        while len(score_list) < 20 * 19 / 2:
+            score_list.append(None)
+
         return score_list
 
-    def batch_validity_func(line):
-        smiles_list = line.split(" ")
+    def batch_validity_func(smiles_list):
         src, tgt_list = smiles_list[0], smiles_list[1:]
         score_list = []
         for tgt in tgt_list:
+            disable_rdkit_log()
             try:
-                block = BlockLogs()
                 mol = Chem.MolFromSmiles(tgt)
                 tgt = Chem.MolToSmiles(mol)
-                del block
                 score_list.append(1.0)
             except:
                 score_list.append(0.0)
+            
+            enable_rdkit_log()
+        
+        while len(score_list) < 20:
+            score_list.append(0.0)
 
         return score_list
 
     lines = Path(hparams.smiles_list_path).read_text(encoding="utf-8").splitlines()
+    lines = [line.split(",")[2:] for line in lines]
 
     validity = Parallel(n_jobs=8)(delayed(batch_validity_func)(line) for line in lines)
     validity = np.array(validity, dtype=np.float)
@@ -96,12 +110,16 @@ if __name__ == "__main__":
     scores = Parallel(n_jobs=8)(delayed(batch_score_func)(line) for line in lines)
     similarities = Parallel(n_jobs=8)(delayed(batch_similarity_func)(line) for line in lines)
 
+    print(similarities)
+    assert False
+
     scores = np.array(scores, dtype=np.float)
     similarities = np.array(similarities, dtype=np.float)
 
     thresholded_scores = scores.copy()
     thresholded_scores[similarities < similarity_thr] = np.nan
     thresholded_scores = np.nanmax(thresholded_scores, axis=1)
+    thresholded_scores[np.isnan(thresholded_scores)] = 0.0
     print(np.nanmean(thresholded_scores), np.nanstd(thresholded_scores))
 
     diversities = Parallel(n_jobs=8)(delayed(batch_diversity_func)(line) for line in lines)

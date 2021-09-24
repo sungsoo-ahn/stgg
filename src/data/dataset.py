@@ -38,10 +38,8 @@ class MosesDataset(ZincDataset):
     raw_dir = f"{DATA_DIR}/moses"
     simple = False
 
-
 class LogP04Dataset(Dataset):
     raw_dir = f"{DATA_DIR}/logp04"
-    simple = False
 
     def __init__(self, split):
         self.split = split
@@ -67,23 +65,17 @@ class LogP04Dataset(Dataset):
             tgt_smiles = self.tgt_smiles_list[idx]
             return (
                 SourceData.from_smiles(src_smiles).featurize(),
-                TargetData.from_smiles(tgt_smiles, randomize=False).featurize(),
+                TargetData.from_smiles(tgt_smiles, randomize=True).featurize(),
             )
         else:
             smiles = self.smiles_list[idx]
             return SourceData.from_smiles(smiles).featurize(), smiles
 
-
 class LogP06Dataset(LogP04Dataset):
     raw_dir = f"{DATA_DIR}/logp06"
-    simple = False
-
 
 class DRD2Dataset(LogP04Dataset):
     raw_dir = f"{DATA_DIR}/drd2"
-    simple = False
-
 
 class QEDDataset(LogP04Dataset):
     raw_dir = f"{DATA_DIR}/qed"
-    simple = False
