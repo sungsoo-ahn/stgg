@@ -85,9 +85,7 @@ for smiles_list_dir in [
         
         print(smiles_list_path)
         Parallel(n_jobs=24)(delayed(check_smiles)(smiles) for smiles in smiles_list)
-            
-            
-                
+                            
         # smiles_list = Path(smiles_list_path).read_text(encoding="utf-8").splitlines()
         #for smiles in tqdm(smiles_list):
         #    recon_smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles))

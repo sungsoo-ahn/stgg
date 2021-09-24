@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_clip_val", type=float, default=1.0)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
     parser.add_argument("--resume_from_checkpoint_path", type=str, default=None)
-    parser.add_argument("--check_val_every_n_epoch", type=int, default=50)
+    parser.add_argument("--check_val_every_n_epoch", type=int, default=25)
     parser.add_argument("--tag", type=str, default="default")
     hparams = parser.parse_args()
 

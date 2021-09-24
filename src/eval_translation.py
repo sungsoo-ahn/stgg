@@ -110,9 +110,6 @@ if __name__ == "__main__":
     scores = Parallel(n_jobs=8)(delayed(batch_score_func)(line) for line in lines)
     similarities = Parallel(n_jobs=8)(delayed(batch_similarity_func)(line) for line in lines)
 
-    print(similarities)
-    assert False
-
     scores = np.array(scores, dtype=np.float)
     similarities = np.array(similarities, dtype=np.float)
 
