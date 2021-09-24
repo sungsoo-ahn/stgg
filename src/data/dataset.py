@@ -65,7 +65,7 @@ class LogP04Dataset(Dataset):
             tgt_smiles = self.tgt_smiles_list[idx]
             return (
                 SourceData.from_smiles(src_smiles).featurize(),
-                TargetData.from_smiles(tgt_smiles, randomize=True).featurize(),
+                TargetData.from_smiles(tgt_smiles, randomize=False).featurize(),
             )
         else:
             smiles = self.smiles_list[idx]
