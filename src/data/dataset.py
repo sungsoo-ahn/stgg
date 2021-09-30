@@ -1,42 +1,48 @@
 import os
 from pathlib import Path
+import torch
 from torch.utils.data import Dataset
 from data.target_data import Data as TargetData
 from data.source_data import Data as SourceData
-
+from props.properties import penalized_logp
 DATA_DIR = "../resource/data"
 
 
 class ZincDataset(Dataset):
     raw_dir = f"{DATA_DIR}/zinc"
-    simple = True
-
-    def __init__(self, split, randomize):
+    def __init__(self, split):
         smiles_list_path = os.path.join(self.raw_dir, f"{split}.txt")
         self.smiles_list = Path(smiles_list_path).read_text(encoding="utf=8").splitlines()
-        self.randomize = randomize
-
+        
     def __len__(self):
         return len(self.smiles_list)
 
     def __getitem__(self, idx):
         smiles = self.smiles_list[idx]
-        return TargetData.from_smiles(smiles, randomize=self.randomize).featurize()
+        return TargetData.from_smiles(smiles).featurize()
 
 
 class QM9Dataset(ZincDataset):
     raw_dir = f"{DATA_DIR}/qm9"
-    simple = True
-
 
 class SimpleMosesDataset(ZincDataset):
     raw_dir = f"{DATA_DIR}/moses"
-    simple = True
-
 
 class MosesDataset(ZincDataset):
     raw_dir = f"{DATA_DIR}/moses"
-    simple = False
+
+class LogPZincDataset(Dataset):
+    raw_dir = f"{DATA_DIR}/zinc"
+    def __init__(self, split):
+        smiles_list_path = os.path.join(self.raw_dir, f"{split}.txt")
+        self.smiles_list = Path(smiles_list_path).read_text(encoding="utf=8").splitlines()
+        
+    def __len__(self):
+        return len(self.smiles_list)
+
+    def __getitem__(self, idx):
+        smiles = self.smiles_list[idx]
+        return TargetData.from_smiles(smiles).featurize(), torch.tensor([penalized_logp(smiles)])
 
 class LogP04Dataset(Dataset):
     raw_dir = f"{DATA_DIR}/logp04"
@@ -65,7 +71,7 @@ class LogP04Dataset(Dataset):
             tgt_smiles = self.tgt_smiles_list[idx]
             return (
                 SourceData.from_smiles(src_smiles).featurize(),
-                TargetData.from_smiles(tgt_smiles, randomize=False).featurize(),
+                TargetData.from_smiles(tgt_smiles).featurize(),
             )
         else:
             smiles = self.smiles_list[idx]

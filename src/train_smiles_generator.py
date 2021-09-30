@@ -48,6 +48,7 @@ class SmilesGeneratorLightningModule(BaseGeneratorLightningModule):
             shuffle=True,
             collate_fn=lambda sequences: pad_sequence(sequences, batch_first=True, padding_value=0),
             num_workers=self.hparams.num_workers,
+            drop_last=True,
         )
 
     def val_dataloader(self):
@@ -57,6 +58,7 @@ class SmilesGeneratorLightningModule(BaseGeneratorLightningModule):
             shuffle=False,
             collate_fn=lambda sequences: pad_sequence(sequences, batch_first=True, padding_value=0),
             num_workers=self.hparams.num_workers,
+            drop_last=True,
         )
 
     ### Main steps
@@ -102,7 +104,7 @@ class SmilesGeneratorLightningModule(BaseGeneratorLightningModule):
         parser.add_argument("--emb_size", type=int, default=1024)
         parser.add_argument("--nhead", type=int, default=8)
         parser.add_argument("--dim_feedforward", type=int, default=2048)
-        parser.add_argument("--input_dropout", type=int, default=0.1)
+        parser.add_argument("--input_dropout", type=int, default=0.0)
         parser.add_argument("--dropout", type=int, default=0.1)
         parser.add_argument("--logit_hidden_dim", type=int, default=256)
 

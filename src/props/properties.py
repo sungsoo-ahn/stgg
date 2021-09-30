@@ -9,21 +9,6 @@ import props.drd2_scorer as drd2_scorer
 
 from rdkit.rdBase import BlockLogs
 
-
-def safe_decorator(func):
-    def safe_wrapper(*args):
-        block = BlockLogs()
-        try:
-            return func(*args)
-        except:
-            return None
-
-        del block
-
-    return safe_wrapper
-
-
-@safe_decorator
 def similarity(a, b):
     amol = Chem.MolFromSmiles(a)
     bmol = Chem.MolFromSmiles(b)
@@ -31,19 +16,14 @@ def similarity(a, b):
     fp2 = AllChem.GetMorganFingerprintAsBitVect(bmol, 2, nBits=2048, useChirality=False)
     return DataStructs.TanimotoSimilarity(fp1, fp2)
 
-
-@safe_decorator
 def drd2(s):
     return drd2_scorer.get_score(s)
 
 
-@safe_decorator
 def qed(s):
     mol = Chem.MolFromSmiles(s)
     return QED.qed(mol)
 
-
-@safe_decorator
 def penalized_logp(s):
     mol = Chem.MolFromSmiles(s)
 
