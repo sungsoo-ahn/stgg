@@ -40,4 +40,5 @@ CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_disable_graphmask.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_disable_treeloc.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash condgenerator_zinc.sh
 ```
