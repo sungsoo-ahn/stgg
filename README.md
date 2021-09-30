@@ -31,29 +31,13 @@ You can execute the scripts in the following order.
 
 ```
 cd molgen/src/
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam1.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam2.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam3.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam4.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam5.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_hparam1.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_qm9_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_qm9_hparam1.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash smiles_generator_moses.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash smiles_generator_zinc.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash smiles_generator_qm9.sh
-
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam6.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_hparam7.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_logp04_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_logp04_hparam1.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_logp06_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_logp06_hparam1.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_drd2_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_drd2_hparam1.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_qed_hparam0.sh
-CUDA_VISIBLE_DEVICES=${GPU} bash translator_qed_hparam1.sh
-
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_disable_graphmask.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_disable_treeloc.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_disable_valencemask.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_largebatch.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses_lr.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_moses.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_disable_graphmask.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_disable_treeloc.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc.sh
 ```
