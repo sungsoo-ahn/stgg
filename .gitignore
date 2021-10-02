@@ -139,3 +139,5 @@ resource/log/
 
 # neptune
 .neptune
+
+plot/

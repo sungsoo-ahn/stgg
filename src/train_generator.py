@@ -49,6 +49,7 @@ class BaseGeneratorLightningModule(pl.LightningModule):
             disable_treeloc=hparams.disable_treeloc,
             disable_graphmask=hparams.disable_graphmask, 
             disable_valencemask=hparams.disable_valencemask,
+            enable_absloc=hparams.enable_absloc,
         )
 
     ### Dataloaders and optimizers
@@ -183,6 +184,7 @@ class BaseGeneratorLightningModule(pl.LightningModule):
         parser.add_argument("--disable_treeloc", action="store_true")
         parser.add_argument("--disable_graphmask", action="store_true")
         parser.add_argument("--disable_valencemask", action="store_true")
+        parser.add_argument("--enable_absloc", action="store_true")
         
         #
         parser.add_argument("--lr", type=float, default=2e-4)

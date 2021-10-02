@@ -50,6 +50,19 @@ class EdgeLogitLayer(nn.Module):
 
         return logits
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super().__init__()
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:x.size(0)]
+        return x
 
 class BaseGenerator(nn.Module):
     def __init__(
@@ -62,7 +75,8 @@ class BaseGenerator(nn.Module):
         dropout, 
         disable_treeloc, 
         disable_graphmask, 
-        disable_valencemask
+        disable_valencemask,
+        enable_absloc
         ):
         super(BaseGenerator, self).__init__()
         self.nhead = nhead
@@ -72,8 +86,11 @@ class BaseGenerator(nn.Module):
         self.count_embedding_layer = TokenEmbedding(MAX_LEN, emb_size)
         
         #
-        self.input_dropout = nn.Dropout(input_dropout)
+        if enable_absloc:
+            self.positional_encoding = PositionalEncoding(emb_size)
 
+        self.input_dropout = nn.Dropout(input_dropout)
+        
         #
         self.linear_loc_embedding_layer = nn.Embedding(MAX_LEN + 1, nhead)
         self.up_loc_embedding_layer = nn.Embedding(MAX_LEN + 1, nhead)
@@ -92,6 +109,7 @@ class BaseGenerator(nn.Module):
         self.disable_treeloc = disable_treeloc
         self.disable_graphmask = disable_graphmask
         self.disable_valencemask = disable_valencemask
+        self.enable_absloc = enable_absloc
 
     def forward(self, batched_data):
         (
@@ -110,10 +128,16 @@ class BaseGenerator(nn.Module):
         out = self.token_embedding_layer(sequences)
         out += self.count_embedding_layer(count_sequences)
 
+        if self.enable_absloc:
+            out = self.positional_encoding(out)
+
         out = self.input_dropout(out)
 
         #
-        mask = self.linear_loc_embedding_layer(linear_loc_squares)
+        mask = torch.zeros(batch_size, sequence_len, sequence_len, self.nhead, device=out.device)
+        if not self.enable_absloc:
+            mask += self.linear_loc_embedding_layer(linear_loc_squares)
+            
         if not self.disable_treeloc:
             mask += self.up_loc_embedding_layer(up_loc_squares)
             mask += self.down_loc_embedding_layer(down_loc_squares)
@@ -188,7 +212,8 @@ class CondGenerator(BaseGenerator):
         dropout, 
         disable_treeloc, 
         disable_graphmask, 
-        disable_valencemask
+        disable_valencemask,
+        enable_absloc, 
         ):
         super(CondGenerator, self).__init__(
             num_layers, 
@@ -199,7 +224,8 @@ class CondGenerator(BaseGenerator):
             dropout, 
             disable_treeloc, 
             disable_graphmask, 
-            disable_valencemask
+            disable_valencemask,
+            enable_absloc, 
         )
         self.cond_embedding_layer = nn.Linear(1, emb_size)
 
@@ -227,7 +253,11 @@ class CondGenerator(BaseGenerator):
         out = self.input_dropout(out)
 
         #
-        mask = self.linear_loc_embedding_layer(linear_loc_squares)
+        
+        mask = torch.zeros(batch_size, sequence_len, sequence_len, out.size(-1), device=out.device)
+        if not self.enable_absloc:
+            mask += self.linear_loc_embedding_layer(linear_loc_squares)
+
         if not self.disable_treeloc:
             mask += self.up_loc_embedding_layer(up_loc_squares)
             mask += self.down_loc_embedding_layer(down_loc_squares)

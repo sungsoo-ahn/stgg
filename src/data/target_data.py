@@ -425,6 +425,7 @@ class Data:
         linear_loc_square = (
             torch.abs(torch.arange(sequence_len).unsqueeze(0) - torch.arange(sequence_len).unsqueeze(1)) + 1
         )
+        linear_loc_square[linear_loc_square > MAX_LEN] = MAX_LEN
 
         #
         pad_right = 1 if self.ended else 0
@@ -432,10 +433,13 @@ class Data:
         up_loc_square = self.up_loc_square[self.pointer_node_traj][:, self.pointer_node_traj]
         up_loc_square = np.pad(up_loc_square + 1, (1, pad_right), "constant")
         up_loc_square = torch.LongTensor(up_loc_square)
+        up_loc_square[up_loc_square > MAX_LEN] = MAX_LEN
 
         down_loc_square = self.down_loc_square[self.pointer_node_traj][:, self.pointer_node_traj]
         down_loc_square = np.pad(down_loc_square + 1, (1, pad_right), "constant")
         down_loc_square = torch.LongTensor(down_loc_square)
+        down_loc_square[down_loc_square > MAX_LEN] = MAX_LEN
+
 
         return sequence, count_sequence, graph_mask_sequence, valency_mask_sequence, linear_loc_square, up_loc_square, down_loc_square
 
