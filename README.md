@@ -42,3 +42,10 @@ CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_disable_treeloc.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc.sh
 CUDA_VISIBLE_DEVICES=${GPU} bash condgenerator_zinc.sh
 ```
+
+New scripts!
+```
+cd molgen/src/
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_disable_all.sh.sh
+CUDA_VISIBLE_DEVICES=${GPU} bash generator_zinc_absloc.sh
+```
